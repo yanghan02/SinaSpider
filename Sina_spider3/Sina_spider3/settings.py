@@ -13,9 +13,11 @@ NEWSPIDER_MODULE = 'Sina_spider3.spiders'
 DOWNLOADER_MIDDLEWARES = {
     "Sina_spider3.middleware.UserAgentMiddleware": 401,
     "Sina_spider3.middleware.CookiesMiddleware": 402,
+    #'scrapy_proxies.RandomProxy': 403,
+    #'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 404
 }
 ITEM_PIPELINES = {
-    "Sina_spider3.pipelines.MongoDBPipeline": 403,
+    "Sina_spider3.pipelines.MongoDBPipeline": 405,
 }
 
 SCHEDULER = 'Sina_spider3.scrapy_redis.scheduler.Scheduler'
@@ -39,3 +41,7 @@ CONCURRENT_REQUESTS = 1  # 默认为16
 # CONCURRENT_ITEMS = 1
 # CONCURRENT_REQUESTS_PER_IP = 1
 REDIRECT_ENABLED = False
+
+PROXY_LIST = 'proxy.txt'
+PROXY_MODE = 0
+
