@@ -11,7 +11,7 @@ import datetime
 import requests
 import re
 from lxml import etree
-from Sina_spider3.weiboID import weiboID
+from Sina_spider3.weiboID import generateWeiboID
 from Sina_spider3.scrapy_redis.spiders import RedisSpider
 from scrapy.selector import Selector
 from scrapy.http import Request
@@ -19,6 +19,32 @@ from Sina_spider3.items import TweetsItem, InformationItem, RelationshipsItem
 
 reload(sys)
 sys.setdefaultencoding('utf8')
+
+MIN_YEAR = 2017
+MAX_YEAR = 2018
+
+weiboID = generateWeiboID()
+
+def parse_date(text):
+    # 2015-03-23 22:37:38
+    # 06月03日 19:27
+    try:
+        return datetime.datetime.strptime(text, "%Y-%m-%d %H:%M:%S")
+    except:
+        try:
+            m = re.search(r'(\d+)月(\d+)日 (\d+):(\d+)', text)
+            month = int(m.group(1))
+            day = int(m.group(2))
+            hour = int(m.group(3))
+            minute = int(m.group(4))
+            today = datetime.datetime.today()
+            return  datetime.datetime(year=today.year, month=month, day=day, hour=hour, minute=minute)
+        except:
+            return None
+
+
+def date_to_str(datetime_obj):
+    return datetime_obj.strftime("%Y-%m-%d %H:%M")
 
 
 class Spider(RedisSpider):
@@ -104,15 +130,18 @@ class Spider(RedisSpider):
             pass
         else:
             yield informationItem
-        yield Request(url="https://weibo.cn/%s/profile?filter=1&page=1" % ID, callback=self.parse_tweets, dont_filter=True)
-        yield Request(url="https://weibo.cn/%s/follow" % ID, callback=self.parse_relationship, dont_filter=True)
-        yield Request(url="https://weibo.cn/%s/fans" % ID, callback=self.parse_relationship, dont_filter=True)
+            if 'NickName' in informationItem and informationItem['NickName'] is not None:
+                yield Request(url="https://weibo.cn/%s/profile?filter=1&page=1" % ID, callback=self.parse_tweets, dont_filter=True)
+                # yield Request(url="https://weibo.cn/%s/follow" % ID, callback=self.parse_relationship, dont_filter=True)
+                # yield Request(url="https://weibo.cn/%s/fans" % ID, callback=self.parse_relationship, dont_filter=True)
 
     def parse_tweets(self, response):
         """ 抓取微博数据 """
         selector = Selector(response)
         ID = re.findall('(\d+)/profile', response.url)[0]
         divs = selector.xpath('body/div[@class="c" and @id]')
+        date_obj = None
+        tweets_min_year = MAX_YEAR
         for div in divs:
             try:
                 tweetsItems = TweetsItem()
@@ -140,16 +169,21 @@ class Spider(RedisSpider):
                     tweetsItems["Comment"] = int(comment[0])
                 if others:
                     others = others[0].split('来自'.decode('utf8'))
-                    tweetsItems["PubTime"] = others[0].replace(u"\xa0", "")
+                    date_text = others[0].replace(u"\xa0", "")
+                    date_obj = parse_date(date_text)
+                    if date_obj.year < MAX_YEAR:
+                        tweets_min_year = date_obj.year
+                    tweetsItems["PubTime"] = date_to_str(date_obj)
                     if len(others) == 2:
                         tweetsItems["Tools"] = others[1].replace(u"\xa0", "")
-                yield tweetsItems
+                if date_obj and date_obj.year >= MIN_YEAR and date_obj.year <= MAX_YEAR:
+                    yield tweetsItems
             except Exception, e:
                 pass
-
-        url_next = selector.xpath('body/div[@class="pa" and @id="pagelist"]/form/div/a[text()="下页"]/@href'.decode('utf8')).extract()
-        if url_next:
-            yield Request(url=self.host + url_next[0], callback=self.parse_tweets, dont_filter=True)
+        if date_obj and tweets_min_year >= MIN_YEAR:
+            url_next = selector.xpath('body/div[@class="pa" and @id="pagelist"]/form/div/a[text()="下页"]/@href'.decode('utf8')).extract()
+            if url_next:
+                yield Request(url=self.host + url_next[0], callback=self.parse_tweets, dont_filter=True)
 
     def parse_relationship(self, response):
         """ 打开url爬取里面的个人ID """
