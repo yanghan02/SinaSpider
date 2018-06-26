@@ -24,10 +24,17 @@ SCHEDULER = 'Sina_spider3.scrapy_redis.scheduler.Scheduler'
 SCHEDULER_PERSIST = True
 SCHEDULER_QUEUE_CLASS = 'Sina_spider3.scrapy_redis.queue.SpiderSimpleQueue'
 
+
+MONGODB_HOST = 'localhost'
+MONGODB_PORT = 27017
+MONGODB_USER = 'weibo'
+MONGODB_PASSWORD = '666'
+
 # 种子队列的信息
-REDIE_URL = None
+REDIS_URL = None
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
+REDIS_PASSWORD = r'666'
 
 # 去重队列的信息
 FILTER_URL = None

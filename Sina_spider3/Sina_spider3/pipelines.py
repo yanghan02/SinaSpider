@@ -9,13 +9,15 @@
 # ------------------------------------------
 
 import pymongo
+import settings
 from items import InformationItem, TweetsItem, RelationshipsItem
 
 
 class MongoDBPipeline(object):
     def __init__(self):
-        clinet = pymongo.MongoClient("localhost", 27017)
-        db = clinet["Sina"]
+        client = pymongo.MongoClient(settings.MONGODB_HOST, settings.MONGODB_PORT)
+        db = client["Sina"]
+        db.authenticate(settings.MONGODB_USER, settings.MONGODB_PASSWORD, source="admin")
         self.Information = db["Information"]
         self.Tweets = db["Tweets"]
         self.Relationships = db["Relationships"]

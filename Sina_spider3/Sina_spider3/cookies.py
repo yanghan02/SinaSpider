@@ -24,6 +24,8 @@ logging.getLogger("selenium").setLevel(logging.WARNING)  # 将selenium的日志�
 myWeiBo = []
 with open('account.txt') as f:
     for line in f.readlines():
+        if line.startswith("#"):
+            continue
         username, password = line.strip().split(",")
         myWeiBo.append((username, password))
 
